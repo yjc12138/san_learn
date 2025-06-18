@@ -7,7 +7,7 @@ import torch  # 导入PyTorch库
 import torch.nn.functional as F  # 导入PyTorch函数式接口
 from scipy.optimize import linear_sum_assignment  # 导入线性和分配求解器
 from torch import nn  # 从PyTorch导入神经网络模块
-from torch.cuda.amp import autocast  # 导入自动混合精度
+from torch.amp import autocast  # 导入自动混合精度
 
 from detectron2.projects.point_rend.point_features import point_sample  # 导入点采样函数
 
@@ -132,7 +132,7 @@ class HungarianMatcher(nn.Module):
                 align_corners=False,  # 不对齐角点
             ).squeeze(1)  # 采样输出掩码
 
-            with autocast(enabled=False):  # 禁用自动混合精度
+            with autocast("cuda", enabled=False):  # 禁用自动混合精度
                 out_mask = out_mask.float()  # 转换为浮点型
                 tgt_mask = tgt_mask.float()  # 转换为浮点型
                 # 计算掩码之间的焦点损失

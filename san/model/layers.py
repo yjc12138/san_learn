@@ -53,8 +53,8 @@ class AddFusion(CNNBlockBase):
         self.input_proj = nn.Sequential(
             LayerNorm(in_channels),  # 层归一化
             Conv2d(
-                in_channels,
-                out_channels,
+                in_channels,#768
+                out_channels,#240
                 kernel_size=1,  # 1x1卷积
             ),
         )  # 输入投影
@@ -62,6 +62,7 @@ class AddFusion(CNNBlockBase):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, spatial_shape: tuple):
         # x: [N,L,C] y: [N,C,H,W]
+        print(x.shape,y.shape)#torch.Size([32, 1600, 240]) torch.Size([32, 768, 20, 20])
         y = (
             F.interpolate(
                 self.input_proj(y.contiguous()),  # 应用输入投影

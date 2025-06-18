@@ -22,7 +22,7 @@ SIDE_ADAPTER_REGISTRY.__doc__ = """
 
 
 def build_side_adapter_network(cfg, input_shape):
-    name = cfg.MODEL.SIDE_ADAPTER.NAME  # 获取侧适配器名称
+    name = cfg.MODEL.SIDE_ADAPTER.NAME  # 获取侧适配器名称，"RegionwiseSideAdapterNetwork"
     return SIDE_ADAPTER_REGISTRY.get(name)(cfg, input_shape)  # 创建并返回侧适配器网络
 
 
@@ -127,10 +127,14 @@ class RegionwiseSideAdapterNetwork(nn.Module):
     @classmethod
     def from_config(cls, cfg, input_shape: Dict[str, ShapeSpec]):
         vit = create_model(
-            cfg.MODEL.SIDE_ADAPTER.VIT_NAME,  # ViT名称
-            cfg.MODEL.SIDE_ADAPTER.PRETRAINED,  # 预训练
-            img_size=cfg.MODEL.SIDE_ADAPTER.IMAGE_SIZE,  # 图像大小
-            drop_path_rate=cfg.MODEL.SIDE_ADAPTER.DROP_PATH_RATE,  # 路径丢弃率
+            cfg.MODEL.SIDE_ADAPTER.VIT_NAME,  # ViT名称 vit_w240n6d8_patch16
+# w240: 宽度(width)为240，指模型的隐藏维度
+# n6: 网络深度(depth)为6，即Transformer层数
+# d8: 头数(heads)为8，即每层的注意力头数量
+# patch16: 使用16×16像素的图像块
+            cfg.MODEL.SIDE_ADAPTER.PRETRAINED,  # 预训练 False
+            img_size=cfg.MODEL.SIDE_ADAPTER.IMAGE_SIZE,  # 图像大小 640
+            drop_path_rate=cfg.MODEL.SIDE_ADAPTER.DROP_PATH_RATE,  # 路径丢弃率 0.0
             fc_norm=False,  # 不使用FC归一化
             num_classes=0,  # 类别数为0
             embed_layer=PatchEmbed,  # 嵌入层
@@ -139,8 +143,14 @@ class RegionwiseSideAdapterNetwork(nn.Module):
         fusion_map: List[str] = cfg.MODEL.SIDE_ADAPTER.FUSION_MAP  # 获取融合映射
 
         x2side_map = {int(j): int(i) for i, j in [x.split("->") for x in fusion_map]}  # 创建映射字典
+        # {
+        #     0: 0,  # ViT的第0个块融合CLIP的第0个特征
+        #     1: 3,  # ViT的第1个块融合CLIP的第3个特征
+        #     2: 6, # ViT的第2个块融合CLIP的第6个特征
+        #     3: 9  # ViT的第3个块融合CLIP的第9个特征
+        # }
         # 构建融合层
-        fusion_type: str = cfg.MODEL.SIDE_ADAPTER.FUSION_TYPE  # 获取融合类型
+        fusion_type: str = cfg.MODEL.SIDE_ADAPTER.FUSION_TYPE  # 获取融合类型 "add"
         fusion_layers = nn.ModuleDict(
             {
                 f"layer_{tgt_idx}": build_fusion_layer(
@@ -152,19 +162,19 @@ class RegionwiseSideAdapterNetwork(nn.Module):
         # 构建掩码解码器
         return {
             "vit_model": vit,  # ViT模型
-            "num_queries": cfg.MODEL.SIDE_ADAPTER.NUM_QUERIES,  # 查询数量
+            "num_queries": cfg.MODEL.SIDE_ADAPTER.NUM_QUERIES,  # 查询数量 100
             "fusion_layers": fusion_layers,  # 融合层
             "fusion_map": x2side_map,  # 融合映射
             "mask_decoder": MLPMaskDecoder(
                 in_channels=vit.num_features,  # 输入通道数
-                total_heads=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.NUM_HEADS,  # 总头数
-                total_layers=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.NUM_LAYERS,  # 总层数
-                embed_channels=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.EMBED_CHANNELS,  # 嵌入通道数
-                mlp_channels=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.MLP_CHANNELS,  # MLP通道数
-                mlp_num_layers=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.MLP_NUM_LAYERS,  # MLP层数
-                rescale_attn_bias=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.RESCALE_ATTN_BIAS,  # 是否重新缩放注意力偏置
+                total_heads=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.NUM_HEADS,  # 总头数 12
+                total_layers=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.NUM_LAYERS,  # 总层数 1
+                embed_channels=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.EMBED_CHANNELS,  # 嵌入通道数 256
+                mlp_channels=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.MLP_CHANNELS,  # MLP通道数 256
+                mlp_num_layers=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.MLP_NUM_LAYERS,  # MLP层数 3
+                rescale_attn_bias=cfg.MODEL.SIDE_ADAPTER.ATTN_BIAS.RESCALE_ATTN_BIAS,  # 是否重新缩放注意力偏置 True
             ),  # 创建MLP掩码解码器
-            "deep_supervision_idxs": cfg.MODEL.SIDE_ADAPTER.DEEP_SUPERVISION_IDXS,  # 深度监督索引
+            "deep_supervision_idxs": cfg.MODEL.SIDE_ADAPTER.DEEP_SUPERVISION_IDXS,  # 深度监督索引 [7,8]
         }
 
     def forward(

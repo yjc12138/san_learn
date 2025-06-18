@@ -531,8 +531,12 @@ PCONTEXT_FULL_SEM_SEG_CATEGORIES = [
 def register_all_pcontext_59(root):
     root = os.path.join(root, "pcontext")
     for name, dirname in [("train", "train"), ("val", "val")]:
-        image_dir = os.path.join(root, dirname, "image")
-        gt_dir = os.path.join(root, dirname, "label")
+        if name == "val":
+            image_dir = os.path.join("/home/Tarkiya/project/NLP/code/yjc/data/pcontext/annotations_detectron2/pc59_val/image")
+            gt_dir = os.path.join("/home/Tarkiya/project/NLP/code/yjc/data/pcontext/annotations_detectron2/pc59_val")
+        else:
+            image_dir = os.path.join(root, dirname, "image")
+            gt_dir = os.path.join(root, dirname, "label")
         name = f"pcontext_sem_seg_{name}"
         DatasetCatalog.register(
             name,
@@ -552,8 +556,12 @@ def register_all_pcontext_59(root):
 def register_all_pcontext_full(root):
     root = os.path.join(root, "pcontext_full")
     for name, dirname in [("train", "train"), ("val", "val")]:
-        image_dir = os.path.join(root, dirname, "image")
-        gt_dir = os.path.join(root, dirname, "label")
+        if name == "val":
+            image_dir = os.path.join("/home/Tarkiya/project/NLP/code/yjc/data/pcontext/annotations_detectron2/pc59_val/image")
+            gt_dir = os.path.join("/home/Tarkiya/project/NLP/code/yjc/data/pcontext/annotations_detectron2/pc459_val")
+        else:
+            image_dir = os.path.join(root, dirname, "image")
+            gt_dir = os.path.join(root, dirname, "label")
         name = f"pcontext_full_sem_seg_{name}"
         DatasetCatalog.register(
             name,

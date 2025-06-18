@@ -5,19 +5,24 @@ try:
     from shapely.errors import ShapelyDeprecationWarning  # 从shapely.errors导入ShapelyDeprecationWarning
 
     warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)  # 忽略ShapelyDeprecationWarning
+    warnings.filterwarnings("ignore", category=UserWarning, module="torch.nn.parallel")  # 忽略特定用户警告
+    warnings.filterwarnings("ignore", category=FutureWarning) 
 except:
     pass  # 如果导入失败，则忽略
 import copy  # 导入copy模块，用于深拷贝
 import itertools  # 导入itertools模块，用于创建迭代器
 import logging  # 导入logging模块，用于日志记录
 import os  # 导入os模块，用于操作系统相关功能
+# 设置环境变量
+os.environ["DETECTRON2_DATASETS"] = "/home/Tarkiya/project/NLP/code/yjc/data"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,3,2,4"
+os.environ["WANDB_MODE"] = "offline"
 from collections import OrderedDict, defaultdict  # 从collections导入OrderedDict和defaultdict
 from typing import Any, Dict, List, Set  # 导入类型注解
 
 import detectron2.utils.comm as comm  # 导入detectron2的通信工具
 import torch  # 导入PyTorch库
 
-warnings.filterwarnings("ignore", category=UserWarning, module="torch.nn.parallel")  # 忽略特定用户警告
 from detectron2.checkpoint import DetectionCheckpointer  # 从detectron2导入模型检查点工具
 from detectron2.config import get_cfg  # 从detectron2导入获取配置的函数
 from detectron2.data import MetadataCatalog  # 从detectron2导入元数据目录
@@ -48,10 +53,15 @@ from san.utils import WandbWriter, setup_wandb  # 从san.utils导入Wandb写入�
 
 
 class Trainer(DefaultTrainer):  # 定义自定义训练器类，继承自DefaultTrainer
+# 写入器（Writer）是用于记录训练过程中各种指标和数据的组件，主要功能包括：
+# 记录训练损失、准确率等指标
+# 保存模型检查点
+# 可视化训练过程（如损失曲线、学习率变化等）
+# 输出日志信息
     def build_writers(self):  # 重写构建写入器的方法
         writers = super().build_writers()  # 调用父类的构建写入器方法
         # use wandb writer instead.
-        writers[-1] = WandbWriter()  # 将最后一个写入器替换为WandbWriter
+        writers[-1] = WandbWriter()  # 将最后一个写入器替换为WandbWriter，最后一个通常负责可视化功能
         return writers  # 返回写入器列表
 
     @classmethod
@@ -254,6 +264,8 @@ def setup(args):  # 定义全局设置函数
 
 
 def main(args):  # 定义主函数
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
     cfg = setup(args)  # 执行设置
 
     if args.eval_only:  # 如果是仅评估模式

@@ -61,7 +61,7 @@ class SAN(nn.Module):
         ## 从maskformer2复制
         # 损失参数
         no_object_weight = cfg.MODEL.SAN.NO_OBJECT_WEIGHT  # 无对象权重
-        # 损失权重
+        # 损失权重 这三个参数是在SAN/san/config.py文件中定义的
         class_weight = cfg.MODEL.SAN.CLASS_WEIGHT  # 类别权重
         dice_weight = cfg.MODEL.SAN.DICE_WEIGHT  # DICE权重
         mask_weight = cfg.MODEL.SAN.MASK_WEIGHT  # 掩码权重
@@ -107,8 +107,8 @@ class SAN(nn.Module):
 
         clip_visual_extractor = FeatureExtractor(
             model.visual,  # CLIP视觉模型
-            last_layer_idx=cfg.MODEL.SAN.FEATURE_LAST_LAYER_IDX,  # 最后一层索引
-            frozen_exclude=cfg.MODEL.SAN.CLIP_FROZEN_EXCLUDE,  # 排除冻结
+            last_layer_idx=cfg.MODEL.SAN.FEATURE_LAST_LAYER_IDX,  # 最后一层索引，9
+            frozen_exclude=cfg.MODEL.SAN.CLIP_FROZEN_EXCLUDE,  # 排除冻结，["positional_embedding"]
         )  # 创建CLIP视觉特征提取器
         clip_rec_head = RecWithAttnbiasHead(
             model.visual,  # CLIP视觉模型
@@ -174,7 +174,7 @@ class SAN(nn.Module):
         mask_preds, attn_biases = self.side_adapter_network(
             images.tensor, clip_image_features
         )  # 通过侧适配器网络处理
-        # !! 可以优化为并行运行。
+        # todo: 可以优化为并行运行。
         mask_embs = [
             self.clip_rec_head(clip_image_features, attn_bias, normalize=True)
             for attn_bias in attn_biases

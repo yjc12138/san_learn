@@ -1,8 +1,9 @@
 import argparse
 import os
 import os.path as osp
+import shutil
 from functools import partial
-from pathlib import Path
+from glob import glob
 
 import mmcv
 import numpy as np
@@ -110,8 +111,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # voc_path = args.voc_path
-    voc_path = Path(os.getenv("DETECTRON2_DATASETS", "datasets")) / "VOCdevkit" / "VOC2012"
+    voc_path = args.voc_path
     nproc = args.nproc
     print(full_clsID_to_trID)
     print(base_clsID_to_trID)
@@ -123,15 +123,15 @@ def main():
     for dir_name in [
         "train",
         "val",
-        # "train_base",
-        # "train_base_2",
-        # "train_base_4",
-        # "train_base_6",
-        # "train_base_8",
-        # "train_base_10",
-        # "train_novel",
-        # "val_base",
-        # "val_novel",
+        "train_base",
+        "train_base_2",
+        "train_base_4",
+        "train_base_6",
+        "train_base_8",
+        "train_base_10",
+        "train_novel",
+        "val_base",
+        "val_novel",
     ]:
         os.makedirs(osp.join(out_mask_dir, dir_name), exist_ok=True)
         if dir_name in ["train", "val"]:
@@ -139,11 +139,11 @@ def main():
 
     train_list = [
         osp.join(voc_path, "SegmentationClassAug", f + ".png")
-        for f in np.loadtxt(osp.join(voc_path, "train.txt"), dtype=np.str_).tolist()
+        for f in np.loadtxt(osp.join(voc_path, "train.txt"), dtype=np.str).tolist()
     ]
     test_list = [
         osp.join(voc_path, "SegmentationClassAug", f + ".png")
-        for f in np.loadtxt(osp.join(voc_path, "val.txt"), dtype=np.str_).tolist()
+        for f in np.loadtxt(osp.join(voc_path, "val.txt"), dtype=np.str).tolist()
     ]
 
     if args.nproc > 1:
