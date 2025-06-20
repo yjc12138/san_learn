@@ -15,7 +15,6 @@ import logging  # 导入logging模块，用于日志记录
 import os  # 导入os模块，用于操作系统相关功能
 # 设置环境变量
 os.environ["DETECTRON2_DATASETS"] = "/home/Tarkiya/project/NLP/code/yjc/data"
-os.environ["CUDA_VISIBLE_DEVICES"] = "5,3,2,4"
 os.environ["WANDB_MODE"] = "offline"
 from collections import OrderedDict, defaultdict  # 从collections导入OrderedDict和defaultdict
 from typing import Any, Dict, List, Set  # 导入类型注解

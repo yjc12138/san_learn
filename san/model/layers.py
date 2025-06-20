@@ -36,10 +36,22 @@ class MLP(nn.Module):
     ):
         super().__init__()  # 调用父类初始化方法
         self.num_layers = num_layers  # 层数
-        h = [hidden_dim] * (num_layers - 1)  # 隐藏层维度列表
+        h = [hidden_dim] * (num_layers - 1)  # 隐藏层维度列表 [256, 256]
         self.layers = nn.ModuleList(
             affine_func(n, k) for n, k in zip([input_dim] + h, h + [output_dim])
         )  # 创建层列表
+        # print("h =", h)
+        # print("[input_dim] + h =", [input_dim] + h)
+        # print("h + [output_dim] =", h + [output_dim])
+        # pairs = list(zip([input_dim] + h, h + [output_dim]))
+        # print("zip pairs =", pairs)
+        # print("Layers created:")
+        # for i, (in_dim, out_dim) in enumerate(pairs):
+        #     print(f"  Layer {i}: {in_dim} -> {out_dim}")
+# Layers created:
+#   Layer 0: 240 -> 256
+#   Layer 1: 256 -> 256
+#   Layer 2: 256 -> 256
 
     def forward(self, x: torch.Tensor):
         for i, layer in enumerate(self.layers):
@@ -62,7 +74,7 @@ class AddFusion(CNNBlockBase):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, spatial_shape: tuple):
         # x: [N,L,C] y: [N,C,H,W]
-        print(x.shape,y.shape)#torch.Size([32, 1600, 240]) torch.Size([32, 768, 20, 20])
+        # print(x.shape,y.shape)#torch.Size([32, 1600, 240]) torch.Size([32, 768, 20, 20])
         y = (
             F.interpolate(
                 self.input_proj(y.contiguous()),  # 应用输入投影

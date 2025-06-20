@@ -61,8 +61,9 @@ class MLPMaskDecoder(nn.Module):
             mlp_num_layers,
             affine_func=dense_affine_func,
         )  # 创建注意力MLP
+        #print(embed_channels * self.total_heads * self.total_layers)#256*12*1=3072
         if rescale_attn_bias:  # 如果重新缩放注意力偏置
-            self.bias_scaling = nn.Linear(1, 1)  # 创建线性缩放层
+            self.bias_scaling = nn.Linear(1, 1)  # 创建线性缩放层 y = wx + b
         else:
             self.bias_scaling = nn.Identity()  # 创建恒等映射
 

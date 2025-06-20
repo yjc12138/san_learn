@@ -236,7 +236,7 @@ def build_detection_train_loader(
             只是将数据放入列表中。
         aspect_ratio_grouping (bool): 是否为提高效率而对具有相似
             宽高比的图像进行分组。启用时，它要求
-            数据集中的每个元素都是具有键“width”和“height”的字典。
+            数据集中的每个元素都是具有键"width"和"height"的字典。
         num_workers (int): 并行数据加载工作进程的数量
 
     返回:
