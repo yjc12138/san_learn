@@ -20,6 +20,7 @@ from .clip_utils import (  # 导入CLIP工具函数
 from .criterion import SetCriterion  # 导入集合准则
 from .matcher import HungarianMatcher  # 导入匈牙利匹配器
 from .side_adapter import build_side_adapter_network  # 导入侧适配器网络构建工具
+from .sam_adapter import SAMFeatureExtractor, SAMFeatureFusion  # 导入SAM适配器模块
 
 
 @META_ARCH_REGISTRY.register()  # 注册为元架构
@@ -39,6 +40,8 @@ class SAN(nn.Module):
         pixel_mean: List[float] = [0.48145466, 0.4578275, 0.40821073],  # 像素均值
         pixel_std: List[float] = [0.26862954, 0.26130258, 0.27577711],  # 像素标准差
         sem_seg_postprocess_before_inference: bool = False,  # 是否在推理前进行语义分割后处理
+        sam_feature_extractor: nn.Module = None,  # SAM特征提取器
+        sam_feature_fusion: nn.Module = None,  # SAM特征融合模块
     ):
         super().__init__()  # 调用父类初始化方法
         self.asymetric_input = asymetric_input  # 设置是否使用不对称输入
@@ -51,6 +54,11 @@ class SAN(nn.Module):
         self.clip_visual_extractor = clip_visual_extractor  # 设置CLIP视觉特征提取器
         self.clip_rec_head = clip_rec_head  # 设置CLIP重构头
         self.ov_classifier = ov_classifier  # 设置开放词汇分类器
+        
+        # 添加SAM特征提取器和特征融合模块
+        self.sam_feature_extractor = sam_feature_extractor
+        self.sam_feature_fusion = sam_feature_fusion
+        
         self.register_buffer(
             "pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False
         )  # 注册像素均值缓冲区
@@ -126,6 +134,29 @@ class SAN(nn.Module):
         )
         pixel_mean = [255.0 * x for x in pixel_mean]  # 缩放像素均值
         pixel_std = [255.0 * x for x in pixel_std]  # 缩放像素标准差
+        
+        # 创建SAM特征提取器和特征融合模块
+        sam_feature_extractor = None
+        sam_feature_fusion = None
+        
+        # 如果启用SAM模块
+        if hasattr(cfg.MODEL, "SAM") and cfg.MODEL.SAM.ENABLED:
+            # 创建SAM特征提取器
+            sam_feature_extractor = SAMFeatureExtractor(
+                checkpoint_path=cfg.MODEL.SAM.CHECKPOINT,
+                model_type=cfg.MODEL.SAM.MODEL_TYPE,
+                frozen=cfg.MODEL.SAM.FROZEN,
+                exclude_pos=cfg.MODEL.SAM.EXCLUDE_POS
+            )
+            
+            # 创建SAM特征融合模块
+            # 获取CLIP特征维度
+            clip_dims = {str(i): dim for i, dim in enumerate(clip_visual_extractor.output_shapes)}
+            sam_feature_fusion = SAMFeatureFusion(
+                sam_dim=256,  # SAM特征维度
+                clip_dims=clip_dims,  # CLIP特征维度
+                fusion_type=cfg.MODEL.SAM.FUSION_TYPE  # 融合类型
+            )
 
         return {
             "clip_visual_extractor": clip_visual_extractor,  # CLIP视觉特征提取器
@@ -141,6 +172,8 @@ class SAN(nn.Module):
             "sem_seg_postprocess_before_inference": cfg.MODEL.SAN.SEM_SEG_POSTPROCESS_BEFORE_INFERENCE,  # 是否在推理前进行语义分割后处理
             "pixel_mean": pixel_mean,  # 像素均值
             "pixel_std": pixel_std,  # 像素标准差
+            "sam_feature_extractor": sam_feature_extractor,  # SAM特征提取器
+            "sam_feature_fusion": sam_feature_fusion,  # SAM特征融合模块
         }
 
     def forward(self, batched_inputs):
@@ -171,6 +204,25 @@ class SAN(nn.Module):
                 clip_input, scale_factor=self.clip_resolution, mode="bilinear"
             )  # 调整CLIP输入大小
         clip_image_features = self.clip_visual_extractor(clip_input)  # 提取CLIP图像特征
+        
+        # 使用SAM特征提取器提取特征
+        if self.sam_feature_extractor is not None:
+            # 提取SAM特征
+            sam_features = self.sam_feature_extractor(images.tensor)
+            
+            # 应用LayerNorm归一化SAM特征
+            # 将特征从[B,C,H,W]转换为[B,H,W,C]以便应用LayerNorm
+            b, c, h, w = sam_features.shape
+            sam_features_norm = sam_features.permute(0, 2, 3, 1).contiguous()  # [B,H,W,C]
+            sam_features_norm = self.sam_feature_extractor.layer_norm(sam_features_norm)
+            sam_features_norm = sam_features_norm.permute(0, 3, 1, 2).contiguous()  # [B,C,H,W]
+            
+            # 融合SAM特征和CLIP特征
+            if self.sam_feature_fusion is not None:
+                fused_features = self.sam_feature_fusion(sam_features_norm, clip_image_features)
+                # 使用融合后的特征替换原始CLIP特征
+                clip_image_features = fused_features
+        
         mask_preds, attn_biases = self.side_adapter_network(
             images.tensor, clip_image_features
         )  # 通过侧适配器网络处理

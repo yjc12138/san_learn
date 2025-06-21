@@ -28,6 +28,18 @@ def add_san_config(cfg):
     cfg.SOLVER.BACKBONE_MULTIPLIER = 1.0
     cfg.SOLVER.CLIP_MULTIPLIER = 1.0
     cfg.SOLVER.TEST_IMS_PER_BATCH = 1
+    
+    # BACKBONE配置
+    if not hasattr(cfg.MODEL, "BACKBONE"):
+        cfg.MODEL.BACKBONE = CN()
+        cfg.MODEL.BACKBONE.NAME = "D2ClipViTAdapter"
+        cfg.MODEL.BACKBONE.FREEZE_AT = 0
+    
+    # CLIP配置
+    cfg.MODEL.CLIP = CN()
+    cfg.MODEL.CLIP.ENABLED = True
+    cfg.MODEL.CLIP.PRETRAINED = True
+    cfg.MODEL.CLIP.NAME = "ViT-B/16"
 
     # san
     cfg.MODEL.SAN = CN()
@@ -53,6 +65,16 @@ def add_san_config(cfg):
     cfg.MODEL.SAN.CLIP_RESOLUTION = 0.5
 
     cfg.MODEL.SAN.SEM_SEG_POSTPROCESS_BEFORE_INFERENCE = True
+    
+    # 添加SAM相关配置
+    cfg.MODEL.SAM = CN()
+    cfg.MODEL.SAM.ENABLED = True  # 是否启用SAM模块
+    cfg.MODEL.SAM.CHECKPOINT = "SAN/checkpoint/sam_vit_b_01ec64.pth"  # SAM模型权重路径
+    cfg.MODEL.SAM.MODEL_TYPE = "vit_b"  # SAM模型类型
+    cfg.MODEL.SAM.FROZEN = True  # 是否冻结SAM模型参数
+    cfg.MODEL.SAM.EXCLUDE_POS = True  # 是否排除位置编码参数的冻结
+    cfg.MODEL.SAM.FUSION_TYPE = "add"  # 特征融合类型，可选"add"或"concat"
+    
     # side adapter
     cfg.MODEL.SIDE_ADAPTER = CN()
     cfg.MODEL.SIDE_ADAPTER.NAME = "RegionwiseSideAdapterNetwork"

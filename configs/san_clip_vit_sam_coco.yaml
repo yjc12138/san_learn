@@ -51,7 +51,7 @@ MODEL:
       RESCALE_ATTN_BIAS: True
   FLASH: False
 INPUT:
-  MIN_SIZE_TRAIN: 640
+  MIN_SIZE_TRAIN: (640,)
   MIN_SIZE_TRAIN_SAMPLING: "choice"
   MIN_SIZE_TEST: 640
   CROP:
@@ -87,11 +87,11 @@ SOLVER:
   ]
   MAX_ITER: 60000
   AMP:
-    ENABLED: True
+    ENABLED: False
 WANDB:
   PROJECT: "san"
-  NAME: "san_clip_vit_res4_coco_sam"
+  NAME: "san_clip_vit_sam_coco"
 DATALOADER:
   FILTER_EMPTY_ANNOTATIONS: True
   NUM_WORKERS: 4
-VERSION: 2
+VERSION: 2 
